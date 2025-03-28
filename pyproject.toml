@@ -8,6 +8,8 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.13"
 fastapi = {extras = ["standard"], version = "^0.115.12"}
+llama-index = "^0.12.26"
+httpx = {extras = ["socks"], version = "^0.28.1"}
 
 
 [build-system]

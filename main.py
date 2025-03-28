@@ -1,14 +1,15 @@
 from typing import Union
 
 from fastapi import FastAPI
-from document_extraction import Extraction
+from document_extraction.extraction import Extraction  # Adjusted import
 app = FastAPI()
 
 
 @app.post("/analyze-file")
-def data_extract():
-    result = Extraction("pdf", "test.pdf").extract()
-    return {"result": result}
+async def data_extract():
+    result = await Extraction("pdf", "test.pdf").extract()
+    print(result)
+    return result
 
 @app.get("/items/{item_id}")
 async def read_item(item_id):
