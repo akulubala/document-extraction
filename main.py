@@ -6,8 +6,8 @@ app = FastAPI()
 
 
 @app.post("/analyze-file")
-async def data_extract():
-    result = await Extraction("pdf", "test.pdf").extract()
+def data_extract():
+    result = Extraction("pdf", "1.pdf").doExtract()
     print(result)
     return result
 
