@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, pprint, time, json
 from llama_index.core.agent.workflow import FunctionAgent
 from llama_index.llms.openai import OpenAI
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
@@ -6,9 +6,6 @@ from llama_index.core.extractors import PydanticProgramExtractor
 
 from pathlib import Path
 from llama_index.core.node_parser import SentenceSplitter
-import pprint
-import json
-
 from document_extraction.models.product import Product
 
 
@@ -47,17 +44,23 @@ class Extraction:
     def load_from_docx(self):
         try:
             docx_reader = SimpleDirectoryReader(
-                input_files=[Path("../media_files/1.docx")])
+                input_files=[Path("./media_files/1.docx")])
             documents = docx_reader.load_data()
-            splitter = SentenceSplitter(chunk_size=1024)
+            splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=0)
             nodes = splitter.get_nodes_from_documents(documents)
-
-            async def extract_product(node):
-                # Removed 'await' since 'self.s_llm.complete' is not awaitable
-                return self.s_llm.complete(f"{node.text}")
+            
+            async def extract_product(semaphore, node):
+                async with semaphore:
+                    start_time = time.time()
+                    print(f"Task {node} started at {start_time:.2f}")
+                    result =  await self.s_llm.acomplete(f"{node.text}")
+                    end_time = time.time()
+                    print(f"Task {node} finished at {end_time:.2f}, duration: {end_time - start_time:.2f} seconds")
+                    return result
 
             async def process_nodes():
-                tasks = [extract_product(node) for node in nodes]
+                semaphore = asyncio.Semaphore(10) 
+                tasks = [extract_product(semaphore, node) for node in nodes]
                 return await asyncio.gather(*tasks)
 
             products = asyncio.run(process_nodes())
