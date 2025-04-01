@@ -48,7 +48,7 @@ class Extraction:
             documents = docx_reader.load_data()
             splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=0)
             nodes = splitter.get_nodes_from_documents(documents)
-            
+            semaphore = asyncio.Semaphore(10)
             async def extract_product(semaphore, node):
                 async with semaphore:
                     start_time = time.time()
@@ -59,7 +59,6 @@ class Extraction:
                     return result
 
             async def process_nodes():
-                semaphore = asyncio.Semaphore(10) 
                 tasks = [extract_product(semaphore, node) for node in nodes]
                 return await asyncio.gather(*tasks)
 
