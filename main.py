@@ -5,7 +5,6 @@ from typing_extensions import Annotated
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from document_extraction.extraction import Extraction  # Adjusted import
-from document_extraction.utils import loadEnv
 
 app = FastAPI()
     
@@ -18,14 +17,10 @@ async def service_unavailable_handler(request: Request, exc: Exception):
 
 @app.post("/analyze-file")
 def data_extract(file_name: Annotated[str, Form()], file_type: Annotated[str, Form()]):
-    env = loadEnv()
     try:
-        file_name = "1.png"
-        file_type = "image"
         all_line_items = []
         if file_type == "image":
-            images =  [env.str("IMAGE_BASE_URI") + image for image in file_name] if type(file_name) == list else [env.str("IMAGE_BASE_URI") + file_name]
-            images = ["1.png"]
+            images =  [image for image in file_name]
             all_line_items = Extraction(images=images, document_type=file_type).doExtract()
         else:
             result = Extraction(document_name=file_name, document_type=file_type).doExtract()
