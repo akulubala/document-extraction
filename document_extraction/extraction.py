@@ -98,8 +98,8 @@ class Extraction:
             {
                 "type": "text",
                 "text": '''
-                            * Extract the following fields from the table in this image:
-
+                            * Analyze this image data and identify:
+                            
                               1. sku (product identifier string or alphanumeric code)
 
                               2. product_description (textual name or title of the product)

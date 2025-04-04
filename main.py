@@ -20,7 +20,8 @@ def data_extract(file_name: Annotated[str, Form()], file_type: Annotated[str, Fo
     try:
         all_line_items = []
         if file_type == "image":
-            images =  [image for image in file_name]
+            images =  file_name.split(",")
+            print(f"images: {images}")
             all_line_items = Extraction(images=images, document_type=file_type).doExtract()
         elif file_type == "xlsx":
             all_line_items = Extraction(document_name=file_name, document_type=file_type).doExtract()
