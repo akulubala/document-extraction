@@ -13,8 +13,8 @@ import base64
 from .utils import loadEnv
 from .extract_from_excel import process_excel
 
-
-
+env = loadEnv()
+BASE_DOCUMENT_PATH = env.str('BASE_DOCUMENT_PATH', '/code/booking_v2/mediafiles/extract-files/')
 class Extraction:
     def __init__(self, **kwargs):
         self.document_type = kwargs.get("document_type")
@@ -69,7 +69,7 @@ class Extraction:
 
         try:
             pdf_reader = SimpleDirectoryReader(
-                input_files=[Path(f"/code/booking_v2/mediafiles/extract-files/{self.document_name}")])
+                input_files=[Path(f"{BASE_DOCUMENT_PATH}{self.document_name}")])
             return self.node_parse(pdf_reader.load_data())
         except Exception as e:
             raise Exception(f"Error loading PDF: {e}")
@@ -77,7 +77,7 @@ class Extraction:
     def load_from_docx(self):
         try:
             docx_reader = SimpleDirectoryReader(
-                input_files=[Path(f"/code/booking_v2/mediafiles/extract-files/{self.document_name}")])
+                input_files=[Path(f"{BASE_DOCUMENT_PATH}{self.document_name}")])
             documents = docx_reader.load_data()
             return self.node_parse(documents)
         except Exception as e:
@@ -85,7 +85,7 @@ class Extraction:
 
     def load_from_excel(self):
         try:
-            extracted_data = process_excel(Path(f"/code/booking_v2/mediafiles/extract-files/{self.document_name}"))
+            extracted_data = process_excel(Path(f"{BASE_DOCUMENT_PATH}{self.document_name}"))
             if not extracted_data:
                 raise ValueError("Failed to extract data from the Excel file.")
             return extracted_data
@@ -123,7 +123,7 @@ class Extraction:
                 return base64.b64encode(image_file.read()).decode("utf-8")
 
         for image_path in self.images:
-            base64_image = encode_image(Path(f"/code/booking_v2/mediafiles/extract-files/{image_path}"))
+            base64_image = encode_image(Path(f"{image_path}"))
             image_type = image_path.split(".")[-1]
             if image_type not in ["png", "jpg", "jpeg"]:
                 raise ValueError("Unsupported image type. Supported types are: png, jpg, jpeg.")
@@ -135,7 +135,6 @@ class Extraction:
                     "url":  f"data:image/{image_type};base64,{base64_image}",
                 }
             })
-        env = loadEnv()
         client = OpenAI(
             api_key=env.str('OPENAI_API_KEY')
         )
