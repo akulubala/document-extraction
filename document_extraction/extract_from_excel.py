@@ -5,7 +5,7 @@ import os
 from tqdm import tqdm
 from pathlib import Path
 
-from utils import loadEnv
+from .utils import loadEnv
 env = loadEnv()
 # Set your OpenAI API key
 openai = OpenAI(
@@ -95,8 +95,6 @@ def process_excel(file_path):
                 
             # Analyze sheet structure
             analysis = analyze_sheet(df_sample)
-            print(f"\nAnalysis for {sheet_name}:")
-            print(json.dumps(analysis, indent=2))
             
             # Read full sheet with proper headers
             df = pd.read_excel(xls, 

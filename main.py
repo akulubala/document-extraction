@@ -22,6 +22,8 @@ def data_extract(file_name: Annotated[str, Form()], file_type: Annotated[str, Fo
         if file_type == "image":
             images =  [image for image in file_name]
             all_line_items = Extraction(images=images, document_type=file_type).doExtract()
+        elif file_type == "xlsx":
+            all_line_items = Extraction(document_name=file_name, document_type=file_type).doExtract()
         else:
             result = Extraction(document_name=file_name, document_type=file_type).doExtract()
             for entry in result:

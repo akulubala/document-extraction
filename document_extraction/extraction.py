@@ -11,6 +11,7 @@ from openai import OpenAI
 import base64
 
 from .utils import loadEnv
+from .extract_from_excel import process_excel
 
 
 
@@ -84,10 +85,10 @@ class Extraction:
 
     def load_from_excel(self):
         try:
-            excel_reader = SimpleDirectoryReader(
-                input_files=[Path(f"./media_files/{self.document_name}")])
-            documents = excel_reader.load_data()
-            return self.node_parse(documents)
+            extracted_data = process_excel(Path(f"./media_files/{self.document_name}"))
+            if not extracted_data:
+                raise ValueError("Failed to extract data from the Excel file.")
+            return extracted_data
         except Exception as e:
             raise Exception(f"Error loading Excel: {e}")
 
