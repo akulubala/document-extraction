@@ -1,0 +1,38 @@
+# .github/workflows/trigger-remote-workflow.yml
+name: Release version
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Log triggering repository and release version
+        run: |
+              echo "Repository: ${{ github.repository }}"
+              echo "Release version: ${{ github.event.release.tag_name }}"
+      - name: Trigger workflow in another repository
+        env:
+          REMOTE_BUILD_REPO: ${{ secrets.REMOTE_BUILD_REPO }} ## remote repository
+          REMOTE_BUILD_REPO_BRANCH: ${{ secrets.REMOTE_BUILD_REPO_BRANCH }} ## remote repository branch for this repo booking_v2.qcadvisor.com
+          PAT: ${{ secrets.IMAGE_BUILD_PAT }}
+          SOURCE_CODE_REPO: ${{ github.repository }}
+          SOURCE_CODE_RELEASE_VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${PAT}" \
+            https://api.github.com/repos/${REMOTE_BUILD_REPO}/dispatches \
+            -d '{
+                "event_type": "trigger-booking_v2-ai-deploy-workflow",
+                "client_payload": {
+                    "remote_build_repo": "'"${REMOTE_BUILD_REPO}"'",
+                    "source_code_repo": "'"${SOURCE_CODE_REPO}"'",
+                    "remote_build_branch": "'"${REMOTE_BUILD_REPO_BRANCH}"'",
+                    "build_env": "production",
+                    "release_version": "'"${SOURCE_CODE_RELEASE_VERSION}"'"
+                }
+            }'

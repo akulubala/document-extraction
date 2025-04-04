@@ -1,0 +1,51 @@
+# .github/workflows/trigger-remote-workflow.yml
+name: Release To dev
+
+on:
+  push:
+    tags:
+      - release-dev-v*
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log triggering repository and release version
+        run: |
+          echo "Repository: ${{ github.repository }}"
+      
+      - name: Extract Version From Tag
+        run: |
+          TAG_NAME="${GITHUB_REF##*/}"  # Extract the tag name (e.g., release-dev-v1.2.3)
+          echo "Tag: $TAG_NAME"
+          
+          if [[ "$TAG_NAME" =~ ^release-dev-(v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            RELEASE_VERSION="${BASH_REMATCH[1]}"  # Extract version using regex
+            echo "Extracted Version: $RELEASE_VERSION"
+            echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV  # Export as an environment variable
+          else
+            echo "Tag format does not match expected pattern."
+            exit 1
+          fi
+
+      - name: Trigger workflow in another repository
+        env:
+          REMOTE_BUILD_REPO: ${{ secrets.REMOTE_BUILD_REPO }} ## remote repository
+          REMOTE_BUILD_REPO_BRANCH: ${{ secrets.REMOTE_BUILD_REPO_BRANCH }} ## remote repository branch for this repo booking_v2.qcadvisor.com
+          PAT: ${{ secrets.IMAGE_BUILD_PAT }}
+          SOURCE_CODE_REPO: ${{ github.repository }}
+        run: |
+          curl -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token ${PAT}" \
+          https://api.github.com/repos/${REMOTE_BUILD_REPO}/dispatches \
+          -d '{
+              "event_type": "trigger-booking_v2-ai-deploy-workflow",
+              "client_payload": {
+                  "remote_build_repo": "'"${REMOTE_BUILD_REPO}"'",
+                  "source_code_repo": "'"${SOURCE_CODE_REPO}"'",
+                  "remote_build_branch": "'"${REMOTE_BUILD_REPO_BRANCH}"'",
+                  "build_env": "dev",
+                  "release_version": "'"${RELEASE_VERSION}"'"
+              }
+          }'
