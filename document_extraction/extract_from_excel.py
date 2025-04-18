@@ -70,9 +70,9 @@ def extract_data(df, analysis):
                 continue
                 
             results.append({
-                "sku": sku.strip(),
-                "quantity": qty,
-                "description": ", ".join(desc_parts),
+                "product_sku": sku.strip(),
+                "product_quantity": qty,
+                "product_description": ", ".join(desc_parts),
                 "sheet": df.attrs.get('sheet_name', 'unknown')
             })
             
