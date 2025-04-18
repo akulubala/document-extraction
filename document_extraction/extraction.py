@@ -47,7 +47,7 @@ class Extraction:
             async with semaphore:
                 start_time = time.time()
                 result = await self.s_llm.acomplete(f"""
-                                                    * analyze data you are given and extract the product sku, description, and quantity.
+                                                    * analyze data you are given and extract the product sku(treat each size as a SKU, e.g., XS, S, M, L, etc.), description, and quantity.
                                                     * Carefully find and double-check the values of these elements.
                                                     * Extract all raw data of product sku, description and quantity.
                                                     * If there have multiple rows of same sku, please return all of them and do not combine them.
