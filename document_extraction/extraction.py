@@ -9,6 +9,7 @@ from llama_index.core.node_parser import SentenceSplitter
 from document_extraction.models.product import Product
 from openai import OpenAI
 import base64
+import pandas as pd
 
 from .utils import loadEnv
 from .extract_from_excel import process_excel
@@ -31,6 +32,8 @@ class Extraction:
                 loaded_data = self.load_from_docx()
             if self.document_type == "xlsx":
                 loaded_data = self.load_from_excel()
+            if self.document_type == 'excel':
+                loaded_data = self.load_from_xlsx()
             if self.document_type == "image":
                 loaded_data = self.load_from_image()
              # Process each chunk if the data is a list
@@ -83,7 +86,7 @@ class Extraction:
         except Exception as e:
             raise Exception(f"Error loading DOCX: {e}")
 
-    def load_from_excel(self):
+    def load_from_xlsx(self):
         try:
             extracted_data = process_excel(Path(f"{BASE_DOCUMENT_PATH}{self.document_name}"))
             if not extracted_data:
@@ -91,6 +94,18 @@ class Extraction:
             return extracted_data
         except Exception as e:
             raise Exception(f"Error loading Excel: {e}")
+        
+    def load_from_excel(self):
+        try:
+            df = pd.read_excel("1.xlsx")
+            print(df.to_markdown())
+            xlsx_reader = SimpleDirectoryReader(
+                input_files=[Path(f"{BASE_DOCUMENT_PATH}{self.document_name}")])
+            documents = xlsx_reader.load_data()
+            return self.node_parse(documents)
+        except Exception as e:
+            raise Exception(f"Error loading DOCX: {e}")
+        
 
     def load_from_image(self) -> list:
         # get image url from paramters
