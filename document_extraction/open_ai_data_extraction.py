@@ -1,3 +1,5 @@
+import json
+import re
 from llama_index.core import VectorStoreIndex
 from llama_index.core.schema import Document
 import pandas as pd
@@ -29,9 +31,7 @@ def load_excel_to_documents(file_path, max_rows_per_chunk=100):
 
     documents = []
     for sheet_name, df in sheets.items():
-        print(f"{sheet_name} 原始行数: {len(df)}")
         df = clean_dataframe(df)
-        print(f"{sheet_name} 清洗后行数: {len(df)}")
         # 只按行分块，不再按字符数分块
         total_rows = 0
         for start_row in range(0, len(df), max_rows_per_chunk):
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     Settings.chunk_size = 100000
     Settings.chunk_overlap = 0
     Settings.llm = OpenAI(model="gpt-4o")
-    file_path = "../media_files/2.xlsx"
+    file_path = "../media_files/f.xlsx"
     documents = load_excel_to_documents(file_path, max_rows_per_chunk=100)
     index = VectorStoreIndex.from_documents(documents)
 
@@ -63,32 +63,20 @@ if __name__ == "__main__":
     all_results = []
     for i, doc in enumerate(documents):
         # 处理每个分块的文本
-        print(f"处理第 {i + 1} 个分块，文本长度: {doc.text}")
-        result = query_engine.query(
-            """
-            请从提供的内容中提取每行的 'product_sku'，'QTE' 和 'description' 字段，输出JSON数组
-            注意事项：
-                * product_sku 可能出现在任意位置（如“ITEM NO：#”后，或其他列）
-                * QTE 是与 product_sku 同行、紧邻或间隔的数字，通常为数量。
-                * description 为该行的文字说明，若无说明可设为字符串"N/A"。
-                * 行内可能有多余内容、编号、合并单元格或字段顺序变化，请自动判断并提取，不要遗漏任何有效数据。
-                * 无论字段顺序、是否有区间编号、是否有合并单元格、是否有多余内容，都要提取。
-                * 只要该行能识别出 product_sku 和 QTE，就应输出一条 JSON 记录。
-            内容如下：
-            """
-            f"\n{doc.text}"
-        )
-
-
-
         result = query_engine.query(
             f"请从以下内容中提取每行的 'product_sku'，'QTE' 和 'description' 字段，输出JSON数组：\n{doc.text}"
         )
-        print(f"第 {i + 1} 个分块的提取结果: {result}")
-        all_results.append(str(result))
-
-    # 合并所有结果
-    with open("all_json_results.txt", "w", encoding="utf-8") as f:
-        for i, res in enumerate(all_results):
-            f.write(res)
-    print(f"已分批处理所有分块内容，共 {len(documents)} 个分块。请查看 all_json_results.txt。")
+        # print(f"第 {i + 1} 个分块的提取结果: {result}")
+        try:
+            # 提取 markdown 代码块中的 JSON
+            result_str = str(result)
+            match = re.search(r"```json\s*(.*?)\s*```", result_str, re.DOTALL)
+            if match:
+                json_str = match.group(1)
+            else:
+                json_str = result_str  # 如果没有代码块，直接用原始内容
+            result_json = json.loads(json_str)
+            all_results += result_json
+        except Exception as e:
+            print(f"第 {i + 1} 个分块解析失败: {e}")
+    print(all_results)
