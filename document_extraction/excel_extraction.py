@@ -47,7 +47,8 @@ def load_excel_to_documents(file_path, max_rows_per_chunk=100):
         print(f"{sheet_name} 分块累计行数: {total_rows}")
     return documents
 
-if __name__ == "__main__":
+def process_excel(file_path: str) -> list:
+    """处理 Excel 文件，返回所有工作表的提取结果"""
     Settings.chunk_size = 100000
     Settings.chunk_overlap = 0
     Settings.llm = OpenAI(model="gpt-4o")
@@ -79,4 +80,4 @@ if __name__ == "__main__":
             all_results += result_json
         except Exception as e:
             print(f"第 {i + 1} 个分块解析失败: {e}")
-    print(all_results)
+    return all_results

@@ -1,4 +1,6 @@
 import environ, os
+from .utils import loadEnv
+
 
 def loadEnv():
     env = environ.Env()
@@ -10,3 +12,9 @@ def loadEnv():
     else:
         raise Exception("No .env file or secrets file found.")
     return env
+
+
+env = loadEnv()
+
+OPENAI_API_KEY = env.str('OPENAI_API_KEY')
+BASE_DOCUMENT_PATH = env.str('BASE_DOCUMENT_PATH', '/code/booking_v2/mediafiles/extract-files/')
