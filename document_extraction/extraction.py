@@ -6,6 +6,7 @@ import base64
 
 from document_extraction.excel_extraction import process_excel
 from document_extraction.image_extraction import process_images
+from document_extraction.textable_extraction import process_docx, process_pdf
 
 
 class Extraction:
@@ -14,18 +15,16 @@ class Extraction:
         self.document_name = kwargs.get("document_name", None)
         self.images = kwargs.get('images', [])
 
-    def doExtract(self):
+    async def doExtract(self):
         try:
             if self.document_type == "pdf":
-                loaded_data = self.load_from_pdf()
+                loaded_data = process_pdf(self.document_name)
             if self.document_type == "docx":
-                loaded_data = self.load_from_docx()
+                loaded_data = process_docx(self.document_name)
             if self.document_type == "image":
                 loaded_data = process_images(self.images)
             if self.document_type == 'xlsx':
-                loaded_data = process_excel(self.document_name)
-            if self.document_type == "image":
-                loaded_data = self.load_from_image()
+                loaded_data = await process_excel(self.document_name)
             return loaded_data
         except Exception as e:
             return {"message": f"error: {e}"}

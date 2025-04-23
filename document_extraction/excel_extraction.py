@@ -1,10 +1,11 @@
+import asyncio
 import json
 import re
-from llama_index.core import VectorStoreIndex
 from llama_index.core.schema import Document
 import pandas as pd
-from llama_index.core import Settings
-from llama_index.llms.openai import OpenAI
+import openai
+
+from document_extraction.utils import OPENAI_API_KEY
 
 def split_text_into_chunks(text, chunk_size=2000):
     """将文本分块，确保每块不超过指定大小"""
@@ -47,37 +48,50 @@ def load_excel_to_documents(file_path, max_rows_per_chunk=100):
         print(f"{sheet_name} 分块累计行数: {total_rows}")
     return documents
 
-def process_excel(file_path: str) -> list:
-    """处理 Excel 文件，返回所有工作表的提取结果"""
-    Settings.chunk_size = 100000
-    Settings.chunk_overlap = 0
-    Settings.llm = OpenAI(model="gpt-4o")
-    file_path = "../media_files/f.xlsx"
-    documents = load_excel_to_documents(file_path, max_rows_per_chunk=100)
-    index = VectorStoreIndex.from_documents(documents)
-
-    query_engine = index.as_query_engine(
-        response_mode="tree_summarize",
-        verbose=True
-    )
-
-    all_results = []
-    for i, doc in enumerate(documents):
-        # 处理每个分块的文本
-        result = query_engine.query(
-            f"请从以下内容中提取每行的 'product_sku'，'QTE' 和 'description' 字段，输出JSON数组：\n{doc.text}"
+async def async_query_chunk(client, prompt):
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "你是一个结构化信息抽取助手。"},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.0,
+            response_format={"type": "json_object"},
+            max_tokens=2048,
         )
-        # print(f"第 {i + 1} 个分块的提取结果: {result}")
-        try:
-            # 提取 markdown 代码块中的 JSON
-            result_str = str(result)
-            match = re.search(r"```json\s*(.*?)\s*```", result_str, re.DOTALL)
-            if match:
-                json_str = match.group(1)
-            else:
-                json_str = result_str  # 如果没有代码块，直接用原始内容
-            result_json = json.loads(json_str)
-            all_results += result_json
-        except Exception as e:
-            print(f"第 {i + 1} 个分块解析失败: {e}")
+        content = response.choices[0].message.content
+        # 提取 markdown 代码块中的 JSON
+        match = re.search(r"```json\s*(.*?)\s*```", content, re.DOTALL)
+        if match:
+            json_str = match.group(1)
+        else:
+            json_str = content
+        return json.loads(json_str)
+    except Exception as e:
+        print(f"分块解析失败: {e}")
+        return []
+
+def process_excel(file_path: str) -> list:
+    documents = load_excel_to_documents(file_path, max_rows_per_chunk=100)
+    client = openai.AsyncOpenAI(api_key=OPENAI_API_KEY)
+    
+    semaphore = asyncio.Semaphore(10)
+    async def extract_product(semaphore, node):
+        async with semaphore:
+            return async_query_chunk(client, prompt)
+    async def process_nodes():
+        tasks = []
+        for doc in documents:
+            prompt = f"请从以下内容中提取每行的 'product_sku'，'QTE' 和 'description' 字段，输出JSON数组：\n{doc.text}"
+            tasks.append(extract_product(client, prompt))
+        return  await asyncio.gather(*tasks)
+
+    for doc in documents:
+        prompt = f"请从以下内容中提取每行的 'product_sku'，'QTE' 和 'description' 字段，输出JSON数组：\n{doc.text}"
+        
+    results = asyncio.run(process_nodes())
+    all_results = []
+    for r in results:
+        all_results += r
     return all_results
