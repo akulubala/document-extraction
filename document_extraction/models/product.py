@@ -8,10 +8,10 @@ class ProductItem(BaseModel):
     product_sku: str = Field(
         description="The sku of a product",
     )
-    product_qty: int = Field(
+    QTE: int = Field(
         description="the quantity of the product.",
     )
-    product_description: Optional[str] = Field(
+    description: Optional[str] = Field(
         description="description of the product",
     )
     @field_validator("product_sku")

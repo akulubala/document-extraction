@@ -1,11 +1,12 @@
 import asyncio
 import json
+from pathlib import Path
 import re
 from llama_index.core.schema import Document
 import pandas as pd
 import openai
 
-from document_extraction.utils import OPENAI_API_KEY
+from document_extraction.utils import BASE_DOCUMENT_PATH, OPENAI_API_KEY
 
 def split_text_into_chunks(text, chunk_size=2000):
     """将文本分块，确保每块不超过指定大小"""
@@ -72,26 +73,42 @@ async def async_query_chunk(client, prompt):
         print(f"分块解析失败: {e}")
         return []
 
-def process_excel(file_path: str) -> list:
-    documents = load_excel_to_documents(file_path, max_rows_per_chunk=100)
+def process_excel(document_name: str) -> list:
+    documents = load_excel_to_documents(Path(f"{BASE_DOCUMENT_PATH}/xlsx/{document_name}"), max_rows_per_chunk=100)
     client = openai.AsyncOpenAI(api_key=OPENAI_API_KEY)
-    
-    semaphore = asyncio.Semaphore(10)
-    async def extract_product(semaphore, node):
+
+    async def extract_product(semaphore, prompt):
         async with semaphore:
-            return async_query_chunk(client, prompt)
+            return await async_query_chunk(client, prompt)
     async def process_nodes():
+        print(f"准备启动 {len(documents)} 个异步任务")
         tasks = []
+        semaphore = asyncio.Semaphore(5)
         for doc in documents:
             prompt = f"请从以下内容中提取每行的 'product_sku'，'QTE' 和 'description' 字段，输出JSON数组：\n{doc.text}"
-            tasks.append(extract_product(client, prompt))
-        return  await asyncio.gather(*tasks)
-
-    for doc in documents:
-        prompt = f"请从以下内容中提取每行的 'product_sku'，'QTE' 和 'description' 字段，输出JSON数组：\n{doc.text}"
+            tasks.append(extract_product(semaphore, prompt))
+        results = await asyncio.gather(*tasks)
+        print("所有异步任务已完成")
+        return results     
         
     results = asyncio.run(process_nodes())
     all_results = []
-    for r in results:
-        all_results += r
+    for idx, r in enumerate(results):
+        print(f"分块 {idx} 返回: {r}")
+        if isinstance(r, list):
+            all_results.extend(r)
+        elif isinstance(r, dict):
+            # 兼容 {"data": [...]}
+            if "data" in r and isinstance(r["data"], list):
+                all_results.extend(r["data"])
+            # 兼容 {"result": [...]}
+            elif "result" in r and isinstance(r["result"], list):
+                all_results.extend(r["result"])
+            # 兼容单个对象
+            elif "product_sku" in r and "QTE" in r and "description" in r:
+                all_results.append(r)
+            else:
+                print(f"警告：分块 {idx} 返回格式异常，已跳过")
+        else:
+            print(f"警告：分块 {idx} 返回格式异常，已跳过")
     return all_results
