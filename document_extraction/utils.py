@@ -1,6 +1,4 @@
 import environ, os
-from .utils import loadEnv
-
 
 def loadEnv():
     env = environ.Env()

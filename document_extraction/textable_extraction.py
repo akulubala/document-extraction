@@ -8,23 +8,22 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.llms.openai import OpenAI as LLMOpenAI
 
 def process_docx(document_name: str) -> list:
+
         try:
             docx_reader = SimpleDirectoryReader(
-                input_files=[Path(f"{BASE_DOCUMENT_PATH}{document_name}")])
+                input_files=[Path(f"{BASE_DOCUMENT_PATH}/docx/{document_name}")])
             documents = docx_reader.load_data()
             return node_parse(documents)
         except Exception as e:
             raise Exception(f"Error loading DOCX: {e}")
         
 def process_pdf(document_name: str) -> list:
-
         try:
-            pdf_reader = SimpleDirectoryReader(
-                input_files=[Path(f"{BASE_DOCUMENT_PATH}{document_name}")])
+            doc_path = Path(f"{BASE_DOCUMENT_PATH}/pdfs/{document_name}")
+            pdf_reader = SimpleDirectoryReader(input_files=[doc_path])
             return node_parse(pdf_reader.load_data())
         except Exception as e:
-            raise Exception(f"Error loading PDF: {e}")
-        
+            raise Exception(f"Error loading pdf: {e}")
 
 def node_parse(documents):
         splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=0)

@@ -15,7 +15,7 @@ class Extraction:
         self.document_name = kwargs.get("document_name", None)
         self.images = kwargs.get('images', [])
 
-    async def doExtract(self):
+    def doExtract(self):
         try:
             if self.document_type == "pdf":
                 loaded_data = process_pdf(self.document_name)
@@ -24,7 +24,7 @@ class Extraction:
             if self.document_type == "image":
                 loaded_data = process_images(self.images)
             if self.document_type == 'xlsx':
-                loaded_data = await process_excel(self.document_name)
+                loaded_data = process_excel(self.document_name)
             return loaded_data
         except Exception as e:
             return {"message": f"error: {e}"}

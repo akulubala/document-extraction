@@ -36,7 +36,7 @@ def process_images(images: list) -> list:
                 return base64.b64encode(image_file.read()).decode("utf-8")
 
         for image_path in images:
-            base64_image = encode_image(Path(f"{BASE_DOCUMENT_PATH}{image_path}"))
+            base64_image = encode_image(Path(f"{BASE_DOCUMENT_PATH}/images/{image_path}"))
             image_type = image_path.split(".")[-1]
             if image_type not in ["png", "jpg", "jpeg"]:
                 raise ValueError("Unsupported image type. Supported types are: png, jpg, jpeg.")
